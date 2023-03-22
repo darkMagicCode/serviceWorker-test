@@ -12,6 +12,7 @@ if ("serviceWorker" in navigator) {
       console.error("Error registering Service Worker:", error);
     });
 }
+// wirte fun that take two num and out put the large in reactjs
 
 // advanced Service Worker features
 self.addEventListener("install", (event) => {
