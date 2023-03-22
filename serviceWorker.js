@@ -1,44 +1,67 @@
-// const cacheName = 'news-v1';
-// const staticAssets = [
-//     './index.html'
+// register the service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((registration) => {
+      console.log(
+        "Service Worker registered successfully:",
+        registration.scope
+      );
+    })
+    .catch((error) => {
+      console.error("Error registering Service Worker:", error);
+    });
+}
 
-// ];
+// advanced Service Worker features
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open("my-cache").then((cache) => {
+      return cache.addAll([
+        "/index.html",
+        "/build/static/js/main.23a870f3.js",
+        "/build/static/css/main.1e8de448.css",
+      ]);
+    })
+  );
+});
 
-// self.addEventListener('install', async e => {
-//   const cache = await caches.open(cacheName);
-//   await cache.addAll(staticAssets);
-//   return self.skipWaiting();
-// });
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      if (response) {
+        return response;
+      }
 
-// self.addEventListener('activate', e => {
-//   self.clients.claim();
-// });
+      // advanced caching strategies
+      const fetchRequest = event.request.clone();
 
-// self.addEventListener('fetch', async e => {
-//   const req = e.request;
-//   const url = new URL(req.url);
+      return fetch(fetchRequest).then((response) => {
+        if (!response || response.status !== 200 || response.type !== "basic") {
+          return response;
+        }
 
-//   if (url.origin === location.origin) {
-//     e.respondWith(cacheFirst(req));
-//   } else {
-//     e.respondWith(networkAndCache(req));
-//   }
-// });
+        const responseToCache = response.clone();
+        caches.open("my-cache").then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
 
-// async function cacheFirst(req) {
-//   const cache = await caches.open(cacheName);
-//   const cached = await cache.match(req);
-//   return cached || fetch(req);
-// }
+        return response;
+      });
+    })
+  );
+});
 
-// async function networkAndCache(req) {
-//   const cache = await caches.open(cacheName);
-//   try {
-//     const fresh = await fetch(req);
-//     await cache.put(req, fresh.clone());
-//     return fresh;
-//   } catch (e) {
-//     const cached = await cache.match(req);
-//     return cached;
-//   }
-// }
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== "my-cache") {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
